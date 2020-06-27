@@ -12,6 +12,79 @@ import it.polito.tdp.food.model.Food;
 import it.polito.tdp.food.model.Portion;
 
 public class FoodDao {
+	
+	public List<Food> getCiboByPorzioni(int porzioni){
+		String sql="SELECT DISTINCT f.food_code, f.display_name "
+				+ "FROM food as f, portion as p "
+				+ "WHERE f.food_code=p.food_code "
+				+ "GROUP BY f.food_code "
+				+ "HAVING COUNT(DISTINCT p.portion_id) = ?";
+		
+		List<Food> cibi = new ArrayList<>();
+		
+		try {
+			Connection conn = DBConnect.getConnection() ;
+
+			PreparedStatement st = conn.prepareStatement(sql) ;
+			
+			st.setInt(1, porzioni);
+			
+			ResultSet res = st.executeQuery() ;
+			
+			while(res.next()) {
+				try {
+					cibi.add(new Food(res.getInt("food_code"),
+							res.getString("display_name")
+							));
+				} catch (Throwable t) {
+					t.printStackTrace();
+				}
+			}
+			
+			conn.close();
+			return cibi ;
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return null ;
+		}
+	}
+	
+	public Double getPesoArco(Food f1, Food f2) {
+		
+		String sql="SELECT f1.food_code, f2.food_code, AVG(c.condiment_calories) as avg " + 
+				"FROM food_condiment as f1, food_condiment as f2, condiment as c " + 
+				"WHERE f1.food_code = ? AND f2.food_code = ? " + 
+				"AND f1.condiment_code=f2.condiment_code AND " + 
+				"f1.condiment_code=c.condiment_code AND f1.id<>f2.id " + 
+				"GROUP BY f1.food_code, f2.food_code";
+		
+		Double calorie=null;
+		
+		try {
+			
+			Connection conn = DBConnect.getConnection() ;
+
+			PreparedStatement st = conn.prepareStatement(sql) ;
+			
+			st.setInt(1, f1.getFood_code());
+			st.setInt(2, f2.getFood_code());
+			
+			ResultSet res = st.executeQuery() ;
+			
+			if(res.first()) {
+				calorie=res.getDouble("avg");
+			}
+			
+			conn.close();
+			return calorie;
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return null ;
+		}
+	}
+	
 	public List<Food> listAllFoods(){
 		String sql = "SELECT * FROM food" ;
 		try {
